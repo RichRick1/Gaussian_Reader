@@ -1,6 +1,5 @@
 import telebot
 import requests
-import iodata
 import re
 import numpy as np
 
