@@ -251,7 +251,7 @@ def plot_charges(message):
         bot.register_next_step_handler(message, show_res)
     elif message.text == "Yes":
         bot.send_message(message.from_user.id,
-                         "Please wait. I'm plotting charges...")
+                         "Please wait. I'm plotting the charges...")
         molecule = Molecule(mol)
         molecule.plot_charges(fname="tmp_charges.png")
         img = open('tmp_charges.png', 'rb')
@@ -273,11 +273,11 @@ def plot_energies(message):
         bot.register_next_step_handler(message, show_res)
     elif message.text == "Yes":
         bot.send_message(message.from_user.id,
-                         "Please wait. I'm crearting pic...")
+                         "Please wait. I'm creating the pic...")
         molecule = Molecule(mol)
         molecule.plot_energies(fname="tmp", degeneracy=True)
         img = open('tmp.png', 'rb')
-        bot.send_photo(message.chat.id, img, caption="Plotted energies with degeneracy")
+        bot.send_photo(message.chat.id, img, caption="Plotted energies taking into account degeneracy of the level")
         bot.send_message(message.from_user.id,
                          "What else? You can also print 'break' to quit :)",
                          reply_markup=keyboard_res)
