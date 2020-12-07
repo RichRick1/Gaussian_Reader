@@ -230,12 +230,12 @@ def plot_energies(message):
                          reply_markup=keyboard_res)
         bot.register_next_step_handler(message, show_res)
     elif message.text == "Yes":
+        bot.send_message(message.from_user.id,
+                         "Please wait. I'm building the pic")
         molecule = Molecule(mol)
         molecule.plot_energies(fname="tmp", degeneracy=True)
         img = open('tmp.png', 'rb')
         bot.send_photo(message.chat.id, img, caption="Plotted energies with degeneracy")
-        bot.send_message(message.from_user.id,
-                         "Please wait. I'm building the pic")
         bot.send_message(message.from_user.id,
                          "What else? You can also print 'break' to quit :)",
                          reply_markup=keyboard_res)
