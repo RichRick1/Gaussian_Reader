@@ -33,7 +33,16 @@ class Molecule():
         res = {}
         for num, (elem, charge) in enumerate(zip(self.elements, self.charges)):
             res[elem+"_{}".format(num+1)] = charge
-        return res                    
+        return res
+
+    def plot_charges(self, fname):
+        for element in set(self.elements):
+            charges = [charge for charge, elem in zip(self.charges, self.elements) if elem == element]
+            plt.plot(range(len(charges)), charges, label=element)
+        plt.legend()
+        plt.ylabel("Mulliken charge")
+        plt.savefig(fname, dpi=700, bbox_inches='tight')
+        plt.close()
 
 def read_mulliken_charges(lit, res):
     elems = []
@@ -141,7 +150,8 @@ keyboard_final.row("/start")
 def start(message):
     bot.send_message(message.from_user.id, "Send me gaussian .LOG file.")
     bot.register_next_step_handler(message, get_log)
-    
+
+
 def get_log(message):
     global lit
     global text
@@ -151,7 +161,8 @@ def get_log(message):
     bot.send_message(message.from_user.id, "Should I process it?",
                      reply_markup=keyboard)
     bot.register_next_step_handler(message, get_answer)
-    
+
+
 def get_answer(message):
     global keyboard_final
     global keyboard_res
@@ -199,12 +210,19 @@ def show_res(message):
     global keyboard_res
 
     if message.text in mol.keys():
-        if message.text == "energies":
-            answer = "Your res is :\n{}.\nDo you want to plot them? :)".format(mol["energies"])
-            bot.send_message(message.from_user.id,
-                             answer,
-                             reply_markup=keyboard_yes_no)
-            bot.register_next_step_handler(message, plot_energies)
+        if message.text in mol.keys():
+            if message.text == "energies":
+                answer = "Your res is :\n{}.\nDo you want to plot them? :)".format(mol["energies"])
+                bot.send_message(message.from_user.id,
+                                 answer,
+                                 reply_markup=keyboard_yes_no)
+                bot.register_next_step_handler(message, plot_energies)
+            elif message.text == "charges":
+                answer = "Your res is :\n{}.\nDo you want to plot them? :)".format(mol["charges"])
+                bot.send_message(message.from_user.id,
+                                 answer,
+                                 reply_markup=keyboard_yes_no)
+                bot.register_next_step_handler(message, plot_charges)
         else:
             answer = "Your res is :\n{}.\nWhat else? You can also print 'break' to quit :)".format(mol[message.text])
             bot.send_message(message.from_user.id,
@@ -218,6 +236,28 @@ def show_res(message):
 
     else:
         bot.send_message(message.chat.id, "please, use a keyboard button or type 'break'")
+        bot.register_next_step_handler(message, show_res)
+
+
+def plot_charges(message):
+    global mol
+    global keyboard_res
+
+    if message.text == "No":
+        bot.send_message(message.from_user.id,
+                         "What else? You can also print 'break' to quit :)",
+                         reply_markup=keyboard_res)
+        bot.register_next_step_handler(message, show_res)
+    elif message.text == "Yes":
+        bot.send_message(message.from_user.id,
+                         "Please wait. I'm plotting charges...")
+        molecule = Molecule(mol)
+        molecule.plot_charges(fname="tmp_charges.png")
+        img = open('tmp_charges.png', 'rb')
+        bot.send_photo(message.chat.id, img, caption="Plotted charges")
+        bot.send_message(message.from_user.id,
+                         "What else? You can also print 'break' to quit :)",
+                         reply_markup=keyboard_res)
         bot.register_next_step_handler(message, show_res)
 
 
