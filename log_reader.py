@@ -2,28 +2,32 @@ import telebot
 import requests
 import re
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Molecule():
     def __init__(self, dictionary):
         for k, v in dictionary.items():
             setattr(self, k, v)
             
-    def plot_energies(self, x_limits, color='b', degeneracy=False, fname=None, show=False):
+    def plot_energies(self, x_limits=[0, 1], color='b', degeneracy=False, fname=None, show=False):
         if not degeneracy:
             for energy in self.energies:
                 plt.hlines(energy, x_limits[0], x_limits[1], lw=0.2, color=color)
-            if fname:
-                plt.savefig(fname, dpi=700)
-            if show:
-                plt.show();
-        if degeneracy:
-            energies = np.round(self.energies, 3)
+
+        elif degeneracy:
+            energies = np.round(self.energies, 1)
             energies_unique, frequencies = np.unique(energies, return_counts=True)
             for energy, num in zip(energies_unique, frequencies):
                 E = num*[energy]
                 xlims = get_limits(x_limits, num, 0.01)
                 for i, e in enumerate(E):
                     plt.hlines(e, xlims[i,0], xlims[i,1], lw=0.2, color=color)
+        plt.ylabel("Energy, eV")
+        if fname:
+            plt.savefig(fname, dpi=700, bbox_inches='tight')
+        if show:
+            plt.show();
+
     def charges_table(self):
         res = {}
         for num, (elem, charge) in enumerate(zip(self.elements, self.charges)):
@@ -149,9 +153,14 @@ def get_log(message):
     
 def get_answer(message):
     global keyboard_final
+    global keyboard_res
+    global keyboard_yes_no
     global mol
-    
+
     keyboard_res = telebot.types.ReplyKeyboardMarkup(True)
+    keyboard_yes_no = telebot.types.ReplyKeyboardMarkup(True, True)
+    keyboard_yes_no.row(*["Yes", "No"])
+
     if message.text == "Process":
         try:
             log_info = bot.get_file(doc.file_id)
@@ -182,24 +191,52 @@ def get_answer(message):
         bot.send_message(message.chat.id,"Try again pls")
         bot.register_next_step_handler(message, get_log)
 
+
 def show_res(message):
     global mol
     global keyboard_final
-    keyboard_res = telebot.types.ReplyKeyboardMarkup(True)
-    
-    if message.text in mol.keys():    
-        answer = "Your res is :\n{}.\nWhat else? You can also print 'break' to quit :)".format(mol[message.text])
-        bot.send_message(message.from_user.id,
-                         answer,
-                         reply_markup=keyboard_res)
-        bot.register_next_step_handler(message, show_res)
-    elif message.text == "break":
+    global keyboard_res
+
+    if message.text in mol.keys():
+        if message.text == "energies":
+            answer = "Your res is :\n{}.\nDo you want to plot them? :)".format(mol["energies"])
+            bot.send_message(message.from_user.id,
+                             answer,
+                             reply_markup=keyboard_yes_no)
+            bot.register_next_step_handler(message, plot_energies)
+        else:
+            answer = "Your res is :\n{}.\nWhat else? You can also print 'break' to quit :)".format(mol[message.text])
+            bot.send_message(message.from_user.id,
+                             answer,
+                             reply_markup=keyboard_res)
+            bot.register_next_step_handler(message, show_res)
+    elif message.text.lower() == "break":
         bot.send_message(message.chat.id, "Thx for using me",
                          reply_markup=keyboard_final)
         bot.register_next_step_handler(message, start)
-    
+
     else:
         bot.send_message(message.chat.id, "please, use a keyboard button or type 'break'")
+        bot.register_next_step_handler(message, show_res)
+
+
+def plot_energies(message):
+    global mol
+    global keyboard_res
+
+    if message.text == "No":
+        bot.send_message(message.from_user.id,
+                         "What else? You can also print 'break' to quit :)",
+                         reply_markup=keyboard_res)
+        bot.register_next_step_handler(message, show_res)
+    elif message.text == "Yes":
+        molecule = Molecule(mol)
+        molecule.plot_energies(fname="tmp", degeneracy=True)
+        img = open('tmp.png', 'rb')
+        bot.send_photo(message.chat.id, img, caption="Plotted energies with degeneracy")
+        bot.send_message(message.from_user.id,
+                         "What else? You can also print 'break' to quit :)",
+                         reply_markup=keyboard_res)
         bot.register_next_step_handler(message, show_res)
 
 def get_text_messages(message):
