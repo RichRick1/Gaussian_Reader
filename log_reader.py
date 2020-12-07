@@ -26,7 +26,8 @@ class Molecule():
         if fname:
             plt.savefig(fname, dpi=700, bbox_inches='tight')
         if show:
-            plt.show();
+            plt.show()
+        plt.close()
 
     def charges_table(self):
         res = {}
